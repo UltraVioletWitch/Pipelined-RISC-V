@@ -1,4 +1,4 @@
-read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" }
+read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" "./srcs/block_ram.v" "./srcs/instr_rom.v" "./srcs/gpio_module.v" }
 
 read_xdc "./srcs/Arty-S7-25-Master.xdc"
 
@@ -10,15 +10,6 @@ update_compile_order -fileset sources_1
 puts "Starting synthesis..."
 synth_design -top "main" -part "xc7s25csga324-1"
 
-puts "Running opt_design..."
-opt_design
-
-puts "Running place_design..."
-place_design
-
-puts "Running route_design..."
-route_design
-
 report_utilization -file util.txt
 report_timing_summary -file timing.txt
 
@@ -29,6 +20,20 @@ report_methodology -file method.txt
 report_io -file io.txt
 
 report_ram_utilization -file ram.txt
+
+report_cdc -file cdc.txt
+write_verilog -force elaborated.v
+
+puts "Running opt_design..."
+opt_design
+
+puts "Running place_design..."
+place_design
+
+puts "Running route_design..."
+route_design
+
+
 
 
 puts "Writing bitstream..."

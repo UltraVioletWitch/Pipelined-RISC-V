@@ -1,7 +1,12 @@
 module cpu(
     input wire clk,
     input wire reset,
-    output wire [3:0] out
+    output wire [3:0] out,
+    output wire we,
+    output wire [31:0] mem_addr_r,
+    output wire [31:0] mem_addr_w,
+    output wire [31:0] din,
+    input wire [31:0] dout
 );
 
     // parameter declarations
@@ -21,18 +26,12 @@ module cpu(
                ToRegStart = 5'd8, ToRegEnd = 5'd10, ALUCtrlStart = 5'd11, ALUCtrlEnd = 5'd15, BranchInvert = 5'd16;
 
     // memory definitions
-    (* ram_style = "block" *) reg [31:0] iMem [4095:0];
-    (* ram_style = "block" *) reg [31:0] dMem [8191:0];
     reg [31:0] Regs[31:0];
 
     integer i;
     initial begin
         for (i = 0; i < 32; i = i + 1)
             Regs[i] = 32'b0;
-    end
-
-    initial begin
-        $readmemh("program.hex", iMem);
     end
 
     reg [31:0] PC;
@@ -55,20 +54,49 @@ module cpu(
     reg [1:0] ForwardA, ForwardB, ForwardMem;
     wire zero;
     wire [31:0] alu_result;
-    reg [31:0] EXMEM_RS2, EXMEM_ALU, EXMEM_PC, EXMEM_IG, EXMEM_Ctrl;
+    reg [31:0] EXMEM_RS2, EXMEM_ALU, EXMEM_PC, EXMEM_IG, EXMEM_Ctrl, EXMEM_LD;
     reg [4:0] EXMEM_RD, EXMEM_RS2_ADDR;
     reg EXMEM_Z;
     reg [31:0] MEMWB_LD, MEMWB_ALU, MEMWB_PC, MEMWB_IG, MEMWB_Ctrl;
     reg [4:0] MEMWB_RD;
     reg MEMWB_Z;
-    wire [31:0] mem_addr = EXMEM_ALU;
-    reg [31:0] mem_rdata, store_data;
+    reg [31:0] store_data;
+    wire [31:0] mem_rdata;
     wire [31:0] wr_data;
+    reg [31:0] mem_rrdata, rrdata;
+    reg sw_then_ld0, sw_then_ld1, sw_then_ld2;
+    wire [31:0] wb_rd = (sw_then_ld1) ? rrdata : MEMWB_LD;
 
     // hazard and flush detection
     wire jal_flush = IDEX_Ctrl[PCSrc] && !IDEX_Ctrl[IsConditional];
-    wire load_hazard = (IDEX_Ctrl[MemRead] && (IDEX_RD != 0) && ((IDEX_RD == rs1) || (IDEX_RD == rs2)));
+    wire load_hazard = (EXMEM_Ctrl[MemRead] && (EXMEM_RD != 0) && ((EXMEM_RD == IDEX_RS1_ADDR) || (EXMEM_RD == IDEX_RS2_ADDR)));
     wire branch_taken = EXMEM_Ctrl[IsConditional] && (EXMEM_Z ^ EXMEM_Ctrl[BranchInvert]);
+
+
+    assign we = EXMEM_Ctrl[MemWrite] && (EXMEM_ALU >= 32'h4000);
+    assign din = store_data;
+    assign mem_addr_r = alu_result;
+    assign mem_addr_w = EXMEM_ALU;
+    wire [31:0] i_next;
+
+    /*
+    block_ram dMem (
+        .clk(clk),
+        .we(we),
+        .addr_r(mem_addr_r),
+        .addr_w(mem_addr_w),
+        .din(din),
+        .dout(dout)
+    );
+    */
+
+    instr_rom iMem (
+        .clk(clk),
+        .rst(reset),
+        .en(!load_hazard),
+        .addr(pc_next >> 2),
+        .dout(i_next)
+    );
 
     // Program Counter Calculation Module
     always @* begin
@@ -82,6 +110,8 @@ module cpu(
             pc_next = PC + 4;
     end
 
+
+
     // PC assignment
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -92,18 +122,17 @@ module cpu(
     end
 
 
-
     // IF/ID assignment
     always @(posedge clk or posedge reset) begin
         if (reset) begin
             IFID_PC <= 32'b0;
-            IFID_IR <= NOP;
+            IFID_IR <= i_next;
         end else if (jal_flush || branch_taken) begin
             IFID_IR <= NOP;
             IFID_PC <= 32'b0;
         end else if (!load_hazard) begin
             IFID_PC <= PC;
-            IFID_IR <= iMem[PC >> 2];
+            IFID_IR <= i_next;
         end
     end
 
@@ -139,10 +168,10 @@ module cpu(
             IDEX_IG   <= 32'b0;
             IDEX_PC   <= 32'b0;
             IDEX_Ctrl <= 32'b0;
-        end else if (jal_flush || branch_taken || load_hazard) begin
+        end else if (jal_flush || branch_taken) begin
             IDEX_Ctrl <= 0;
             IDEX_RD <= 0;
-        end else begin
+        end else if (!load_hazard) begin
             IDEX_RS1_ADDR  <= rs1;
             IDEX_RS2_ADDR  <= rs2;
             IDEX_RD   <= rd;
@@ -152,13 +181,22 @@ module cpu(
         end
     end
 
+    wire [31:0] exmem_wr_data;
+    write_back_module wb_fwd (
+        .rd(32'b0),
+        .alu(EXMEM_ALU),
+        .pc(EXMEM_PC),
+        .ImmGen(EXMEM_IG),
+        .ToReg(EXMEM_Ctrl[ToRegEnd:ToRegStart]),
+        .wr_data(exmem_wr_data)
+    );
 
     // forwarding logic (will implement later)
     always @* begin
         case (ForwardA)
             2'b00: alu_in1 = Regs[IDEX_RS1_ADDR];
             2'b01: alu_in1 = wr_data;
-            2'b10: alu_in1 = EXMEM_ALU;
+            2'b10: alu_in1 = exmem_wr_data;
             2'b11: alu_in1 = MEMWB_LD;
         endcase
         if (IDEX_Ctrl[ALUSrc])
@@ -167,7 +205,7 @@ module cpu(
             case (ForwardB)
                 2'b00: alu_in2 = Regs[IDEX_RS2_ADDR];
                 2'b01: alu_in2 = wr_data;
-                2'b10: alu_in2 = EXMEM_ALU;
+                2'b10: alu_in2 = exmem_wr_data;
                 2'b11: alu_in2 = MEMWB_LD;
             endcase
     end
@@ -175,26 +213,24 @@ module cpu(
     always @* begin
         if (EXMEM_Ctrl[RegWrite] && (EXMEM_RD != 0) && (EXMEM_RD == IDEX_RS1_ADDR))
             ForwardA = 2'b10;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS1_ADDR) && !MEMWB_Ctrl[MemRead])
+        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS1_ADDR))
             ForwardA = 2'b01;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS1_ADDR) && MEMWB_Ctrl[MemRead])
-            ForwardA = 2'b11;
         else
             ForwardA = 2'b00;
 
         if (EXMEM_Ctrl[RegWrite] && (EXMEM_RD != 0) && (EXMEM_RD == IDEX_RS2_ADDR))
             ForwardB = 2'b10;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS2_ADDR) && !MEMWB_Ctrl[MemRead])
+        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS2_ADDR))
             ForwardB = 2'b01;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS2_ADDR) && MEMWB_Ctrl[MemRead])
+        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0) && (MEMWB_RD == IDEX_RS2_ADDR))
             ForwardB = 2'b11;
         else
             ForwardB = 2'b00;
 
 
-        if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0) && !MEMWB_Ctrl[MemRead])
+        if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0) && EXMEM_Ctrl[MemWrite])
             ForwardMem = 2'b01;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0) && MEMWB_Ctrl[MemRead])
+        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0))
             ForwardMem = 2'b10;
         else
             ForwardMem = 0;
@@ -223,9 +259,10 @@ module cpu(
             EXMEM_RS2_ADDR <= 5'b0;
             EXMEM_Z <= 1'b0;
             EXMEM_Ctrl <= 32'b0;
-        end else if (jal_flush || branch_taken) begin
+        end else if (jal_flush || branch_taken || load_hazard) begin
             EXMEM_Ctrl <= 32'b0;
         end else begin
+            EXMEM_LD <= dout;
             EXMEM_ALU <= alu_result;
             EXMEM_PC <= IDEX_PC;
             EXMEM_IG <= IDEX_IG;
@@ -239,22 +276,24 @@ module cpu(
 
 
 
+    always @(posedge clk) begin
+        mem_rrdata <= store_data;
+        rrdata <= mem_rrdata;
+    end
+
+
+
+
     always @* begin
         case (ForwardMem)
             2'b01: store_data = wr_data;
-            2'b10: store_data = MEMWB_LD;
-            default: store_data = EXMEM_RS2;
+            2'b10: store_data = wb_rd;
+            default: store_data = Regs[EXMEM_RS2_ADDR];
         endcase
     end
 
-    // MEM Stage
-    always @(posedge clk) begin
-        if (EXMEM_Ctrl[MemRead])
-            mem_rdata <= dMem[mem_addr >> 2];
-        if (EXMEM_Ctrl[MemWrite])
-            dMem[mem_addr >> 2] <= store_data;
-    end
-
+    assign mem_rdata = (IDEX_Ctrl[MemRead] && EXMEM_Ctrl[MemWrite] && (mem_addr_r == mem_addr_w)) ? store_data :
+                       (EXMEM_Ctrl[MemRead]) ? dout : 32'b0;
 
     // MEM/WB assignment
     always @(posedge clk or posedge reset) begin
@@ -266,21 +305,32 @@ module cpu(
             MEMWB_IG <= 32'b0;
             MEMWB_Z <= 1'b0;
             MEMWB_Ctrl <= 32'b0;
-        end else if (!jal_flush && !branch_taken) begin
-            MEMWB_LD <= mem_rdata;
+        end else begin
+            MEMWB_LD <= dout;
             MEMWB_RD <= EXMEM_RD;
             MEMWB_ALU <= EXMEM_ALU;
             MEMWB_PC <= EXMEM_PC;
             MEMWB_IG <= EXMEM_IG;
             MEMWB_Z <= EXMEM_Z;
             MEMWB_Ctrl <= EXMEM_Ctrl;
-        end else 
-            MEMWB_Ctrl <= 32'b0;
+        end
     end
+
+
+
+    always @(posedge clk) begin
+        if (IDEX_Ctrl[MemRead] && EXMEM_Ctrl[MemWrite] && (mem_addr_w == mem_addr_r))
+            sw_then_ld0 <= 1;
+        else
+            sw_then_ld0 <= 0;
+
+        sw_then_ld1 <= sw_then_ld0;
+    end
+
 
     // Write Back Logic Module
     write_back_module wb (
-        .rd(MEMWB_LD),
+        .rd(wb_rd),
         .alu(MEMWB_ALU),
         .pc(MEMWB_PC),
         .ImmGen(MEMWB_IG),
@@ -295,6 +345,6 @@ module cpu(
         Regs[0] <= 32'b0;
     end
 
-    assign out = Regs[15][3:0];
+    assign out = Regs[9][3:0];
 
 endmodule

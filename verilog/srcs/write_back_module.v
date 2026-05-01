@@ -12,6 +12,6 @@ module write_back_module (
                      (ToReg == 3'b010) ? rd :
                      (ToReg == 3'b011) ? pc + ImmGen :
                      (ToReg == 3'b100) ? ImmGen :
-                                         32'b0;
+                                         alu;
 
 endmodule
