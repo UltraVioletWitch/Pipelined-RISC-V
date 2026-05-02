@@ -1,4 +1,4 @@
-read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" "./srcs/block_ram.v" "./srcs/instr_rom.v" "./srcs/gpio_module.v" }
+read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" "./srcs/block_ram.v" "./srcs/instr_rom.v" "./srcs/gpio_module.v" "./srcs/timer_module.v" }
 
 read_xdc "./srcs/Arty-S7-25-Master.xdc"
 

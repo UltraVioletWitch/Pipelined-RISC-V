@@ -6,7 +6,7 @@ compile:
     	-c main.c -o main.o
 
 assemble:
-	@riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 start.s -o start.o
+	@riscv64-unknown-elf-as -march=rv32i_zicsr -mabi=ilp32 start.s -o start.o
 
 link:
 	@riscv64-unknown-elf-ld -m elf32lriscv -T link.ld start.o main.o -o program.elf

@@ -11,7 +11,7 @@ module control_module (
     localparam ADD = 5'b00000, SUB = 5'b00001, XOR = 5'b00010, OR = 5'b00011, AND = 5'b00100, SLL = 5'b00101, 
                SRL = 5'b00110, SRA = 5'b00111, SLT = 5'b01000, SLTU = 5'b01001, MUL = 5'b01010, MULH = 5'b01011, 
                MULHU = 5'b01100, MULHSU = 5'b01101, DIV = 5'b01110, DIVU = 5'b01111, REM = 5'b10000, REMU = 5'b10001,
-               ANDN = 5'b10010;
+               ANDN = 5'b10010, PASS = 5'b10011, PASS2 = 5'b10100;
 
     localparam LOAD = 7'b0000011, LOAD_FP = 7'b0000111, MISC_MEM = 7'b0001111, OP_IMM = 7'b0010011, AUIPC = 7'b0010111, 
                STORE = 7'b0100011, STORE_FP = 7'b0100111, AMO = 7'b0101111, OP = 7'b0110011, LUI = 7'b0110111,
@@ -129,10 +129,10 @@ module control_module (
             SYSTEM: begin
                 case (funct3)
                     3'h1: begin
-                        RegWrite = (rd != 5'b0) ? 1'b1 : 1'b0;
+                        RegWrite = (rd == 5'b0) ? 1'b0 : 1'b1;
                         CSRWrite = 1'b1;
                         ToReg  = (rd == 5'b0)  ? 3'b000 : 3'b101;
-                        ALUCtrl = ADD;
+                        ALUCtrl = PASS;
                     end
                     3'h2: begin
                         RegWrite = 1'b1;
@@ -147,11 +147,11 @@ module control_module (
                         ALUCtrl = ANDN;
                     end
                     3'h5: begin
-                        RegWrite = (rd != 5'b0) ? 1'b1 : 1'b0;
+                        RegWrite = (rd == 5'b0) ? 1'b0 : 1'b1;
                         CSRWrite = 1'b1;
                         ALUSrc   = 1'b1;
                         ToReg  = (rd == 5'b0)  ? 3'b000 : 3'b101;
-                        ALUCtrl = ADD;
+                        ALUCtrl = PASS2;
                     end
                     3'h6: begin
                         RegWrite = 1'b1;
@@ -168,11 +168,14 @@ module control_module (
                         ALUCtrl = ANDN;
                     end
                     3'h0: begin
-                        if (funct12 == 12'h302) begin
-                            PCSrc = 1'b1;
-                            PCSrcType = 1'b0;
-                            MRet = 1'b1;
-                        end
+                        case (funct12)
+                            12'h302: begin
+                                PCSrc = 1'b1;
+                                MRet = 1'b1;
+                            end
+                            default: begin
+                            end
+                        endcase
                     end
                 endcase
             end

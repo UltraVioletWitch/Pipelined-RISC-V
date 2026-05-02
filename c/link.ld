@@ -24,8 +24,10 @@ SECTIONS
     } > DMEM
 
     .bss : {
+        _bss_start = .;
         *(.bss*)
         *(COMMON)
+        _bss_end = .;
     } > DMEM
 
     . = ORIGIN(DMEM) + LENGTH(DMEM);

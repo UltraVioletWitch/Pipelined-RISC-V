@@ -31,11 +31,11 @@ module gpio_module (
     assign interrupt = |(gpio_ip_reg & gpio_ie_reg);
 
     initial begin
-        gpio_dir_reg = 0;
-        gpio_out_reg = 0;
-        gpio_ie_reg  = 0;
-        gpio_ip_reg  = 0;
-        gpio_in_r    = 0;
+        gpio_dir_reg = 32'b0;
+        gpio_out_reg = 32'b0;
+        gpio_ie_reg  = 32'b0;
+        gpio_ip_reg  = 32'b0;
+        gpio_in_r    = 32'b0;
     end
 
     // ── Address decode ────────────────────────────────────────────────────────

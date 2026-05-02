@@ -48,7 +48,6 @@ module tb_main;
     wire [31:0] gpio_out = dut.gpio0.gpio_out_reg;
 
     initial begin
-        $dumpfile("wave.vcd");
         $dumpvars(0, tb_main);
 
         clk = 0;
@@ -58,14 +57,12 @@ module tb_main;
         wait_cycles(5);
         reset = 0;
 
-        $display("\n=== START SYSTEM TEST ===");
 
         // -------------------------
         // Enable interrupts (like your C code)
         // -------------------------
         wait_cycles(20);
 
-        $display("IE = %h", ie_debug);
 
         // -------------------------
         // Generate GPIO edge
@@ -73,7 +70,7 @@ module tb_main;
         gpio_drive = 16'h0000;
         wait_cycles(10);
 
-        gpio_drive = 16'h0100; // rising edge
+        //gpio_drive = 16'h0100; // rising edge
         wait_cycles(10);
 
         // -------------------------
@@ -81,19 +78,11 @@ module tb_main;
         // -------------------------
         wait_cycles(5);
 
-        if (irq)
-            $display("✅ IRQ ASSERTED");
-        else
-            $display("❌ IRQ NOT ASSERTED");
-
-        $display("IP = %h", ip_debug);
-
         // -------------------------
         // wait CPU response
         // -------------------------
         wait_cycles(50);
 
-        $display("GPIO OUT = %h", gpio_out);
 
         // -------------------------
         // toggle again
@@ -101,22 +90,23 @@ module tb_main;
         gpio_drive = 16'h0000;
         wait_cycles(10);
 
-        gpio_drive = 16'h0100;
+        //gpio_drive = 16'h0100;
         wait_cycles(10);
 
         wait_cycles(50);
 
-        $display("IP FINAL = %h", ip_debug);
-        $display("GPIO OUT FINAL = %h", gpio_out);
 
-        $display("\n=== TEST COMPLETE ===");
-
-        wait_cycles(20);
+        wait_cycles(5000);
         $finish;
     end
 
+    reg [6:0] IDEX_OPCODE;
     always @(posedge clk) begin
-        $display("CPU mip = 0x%h", dut.gpio0.gpio_in_wire);
+        IDEX_OPCODE <= dut.core.opcode;
+        if (1)
+            $display("PC = 0x%h, load_hazard = 0x%h, branch_taken = 0x%h, EXMEM_ALU = 0x%h", dut.core.EXMEM_PC, dut.core.load_hazard, dut.core.branch_taken, dut.core.EXMEM_ALU);
+            $display("ForwardA = %b, ForwardB = %b, ForawrdMem = %b, alu_in1 = 0x%h, alu_in2 = 0x%h", dut.core.ForwardA, dut.core.ForwardB, dut.core.ForwardMem, dut.core.alu_in1, dut.core.alu_in2);
+            $display("wr_data = %h, a5 = %h, TimerState = %h", dut.core.mie, dut.gpio, dut.core.mepc);
     end
 
 

@@ -34,23 +34,6 @@ module cpu(
     reg [31:0] mimpid;
     reg [31:0] mtval;
     reg [31:0] mcounteren;
-
-    initial begin
-        mstatus    = 32'b0;
-        mtvec      = 32'b0;
-        mscratch   = 32'b0;
-        mepc       = 32'b0;
-        mcause     = 32'b0;
-        mie        = 32'b0;
-        misa       = 32'h40001100;
-        mhartid    = 32'b0;
-        mvendorid  = 32'b0;
-        marchid    = 32'b0;
-        mimpid     = 32'b0;
-        mtval      = 32'b0;
-        mcounteren = 32'b0;
-    end
-
     reg [31:0] csr_rdata;
 
     wire interrupt_pending = mstatus[3] && |(mie & mip);
@@ -71,12 +54,6 @@ module cpu(
 
     // memory definitions
     reg [31:0] Regs[31:0];
-
-    integer i;
-    initial begin
-        for (i = 0; i < 32; i = i + 1)
-            Regs[i] = 32'b0;
-    end
 
     reg [31:0] PC;
     reg [31:0] pc_next;
@@ -111,7 +88,7 @@ module cpu(
     wire [31:0] mem_rdata;
     wire [31:0] wr_data;
     reg [31:0] mem_rrdata, rrdata;
-    reg sw_then_ld0, sw_then_ld1, sw_then_ld2;
+    reg sw_then_ld0, sw_then_ld1;
     wire [31:0] wb_rd = (sw_then_ld1) ? rrdata : MEMWB_LD;
 
     // hazard and flush detection
@@ -159,7 +136,7 @@ module cpu(
         else if (jal_flush && !IDEX_Ctrl[PCSrcType])
             pc_next = IDEX_PC + IDEX_IG;
         else if (jal_flush && IDEX_Ctrl[PCSrcType])
-            pc_next = (alu_in1 + IDEX_IG) & ~32'b1;
+            pc_next = alu_result & ~32'b1;
         else
             pc_next = PC + 4;
     end
@@ -181,7 +158,6 @@ module cpu(
             IFID_IR <= NOP;
         end else if (flush) begin
             IFID_IR <= NOP;
-            IFID_PC <= 32'b0;
         end else if (!stall) begin
             IFID_PC <= PC;
             IFID_IR <= i_next;
@@ -256,16 +232,15 @@ module cpu(
                       IDEX_Ctrl[Funct3_End:Funct3_Start] == 3'h6 ||
                       IDEX_Ctrl[Funct3_End:Funct3_Start] == 3'h7);
     always @* begin
+        case (ForwardA)
+            2'b00: alu_in1 = Regs[IDEX_RS1_ADDR];
+            2'b01: alu_in1 = wr_data;
+            2'b10: alu_in1 = exmem_wr_data;
+            2'b11: alu_in1 = MEMWB_LD;
+        endcase
         if (csr_modify_op)
-            alu_in1 = IDEX_CSR;
-        else
-            case (ForwardA)
-                2'b00: alu_in1 = Regs[IDEX_RS1_ADDR];
-                2'b01: alu_in1 = wr_data;
-                2'b10: alu_in1 = exmem_wr_data;
-                2'b11: alu_in1 = MEMWB_LD;
-            endcase
-        if (IDEX_Ctrl[ALUSrc])
+            alu_in2 = IDEX_CSR;
+        else if (IDEX_Ctrl[ALUSrc])
             alu_in2 = IDEX_IG;
         else
             case (ForwardB)
@@ -324,7 +299,7 @@ module cpu(
             EXMEM_CSR <= 32'b0;
             EXMEM_CSR_ADDR <= 12'b0;
             EXMEM_Ctrl <= 32'b0;
-        end else if (flush || stall) begin
+        end else if (branch_taken || take_interrupt || stall) begin
             EXMEM_Ctrl <= 32'b0;
         end else begin
             EXMEM_LD <= dout;
@@ -343,13 +318,15 @@ module cpu(
 
 
 
-    always @(posedge clk) begin
-        mem_rrdata <= store_data;
-        rrdata <= mem_rrdata;
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            mem_rrdata <= 0;
+            rrdata <= 0;
+        end else begin
+            mem_rrdata <= store_data;
+            rrdata <= mem_rrdata;
+        end
     end
-
-
-
 
     always @* begin
         case (ForwardMem)
@@ -387,13 +364,18 @@ module cpu(
 
 
 
-    always @(posedge clk) begin
-        if (IDEX_Ctrl[MemRead] && EXMEM_Ctrl[MemWrite] && (mem_addr_w == mem_addr_r))
-            sw_then_ld0 <= 1;
-        else
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
             sw_then_ld0 <= 0;
+            sw_then_ld1 <= 0;
+        end else begin
+            if (IDEX_Ctrl[MemRead] && EXMEM_Ctrl[MemWrite] && (mem_addr_w == mem_addr_r))
+                sw_then_ld0 <= 1;
+            else
+                sw_then_ld0 <= 0;
 
-        sw_then_ld1 <= sw_then_ld0;
+            sw_then_ld1 <= sw_then_ld0;
+        end
     end
 
     always @* begin
@@ -419,8 +401,29 @@ module cpu(
             endcase
     end
 
-    always @(posedge clk) begin
-        if (EXMEM_Ctrl[CSRWrite]) begin
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin 
+            mstatus    = 32'b0;
+            mtvec      = 32'b0;
+            mscratch   = 32'b0;
+            mepc       = 32'b0;
+            mcause     = 32'b0;
+            mie        = 32'b0;
+            misa       = 32'h40001100;
+            mhartid    = 32'b0;
+            mvendorid  = 32'b0;
+            marchid    = 32'b0;
+            mimpid     = 32'b0;
+            mtval      = 32'b0;
+            mcounteren = 32'b0;
+        end else if (take_interrupt) begin
+            mepc       <= IFID_PC;
+            mcause     <= interrupt_cause;
+            mtval      <= 32'b0;
+            mstatus <= {mstatus[31:8], mstatus[3], mstatus[6:4], 1'b0, mstatus[2:0]};
+        end else if (IDEX_Ctrl[MRet]) begin
+            mstatus <= {mstatus[31:8], 1'b1, mstatus[6:4], mstatus[7], mstatus[2:0]};
+        end else if (EXMEM_Ctrl[CSRWrite]) begin
             case (EXMEM_CSR_ADDR)  // you'll need to pipeline the CSR address too
                 12'h300: mstatus  <= EXMEM_ALU;  // CSRRW writes alu result
                 12'h305: mtvec    <= EXMEM_ALU;
@@ -432,15 +435,6 @@ module cpu(
                 12'h306: mcounteren <= EXMEM_ALU;
                 // read-only: mip, misa, mhartid, mvendorid, marchid, mimpid
             endcase
-        end
-
-        if (take_interrupt) begin
-            mepc       <= PC;
-            mcause     <= interrupt_cause;
-            mtval      <= 32'b0;
-            mstatus <= {mstatus[31:8], mstatus[3], mstatus[6:4], 1'b0, mstatus[2:0]};
-        end else if (IDEX_Ctrl[MRet]) begin
-            mstatus <= {mstatus[31:8], 1'b1, mstatus[6:4], mstatus[7], mstatus[2:0]};
         end
     end
 
@@ -455,13 +449,15 @@ module cpu(
         .wr_data(wr_data)
     );
 
+    integer i;
     // Write Back
-    always @(posedge clk) begin
-        if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0))
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            for (i = 0; i < 32; i = i + 1)
+                Regs[i] = 32'b0;
+        end else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0))
             Regs[MEMWB_RD] <= wr_data;
         Regs[0] <= 32'b0;
     end
-
-    assign out = Regs[9][3:0];
 
 endmodule
