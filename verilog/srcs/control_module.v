@@ -2,6 +2,7 @@ module control_module (
     input wire [6:0] opcode,
     input wire [2:0] funct3,
     input wire [6:0] funct7,
+    input wire [11:0] funct12,
     output wire [31:0] ctrl,
     input wire [4:0] rd,
     input wire [4:0] rs1
@@ -9,16 +10,17 @@ module control_module (
 
     localparam ADD = 5'b00000, SUB = 5'b00001, XOR = 5'b00010, OR = 5'b00011, AND = 5'b00100, SLL = 5'b00101, 
                SRL = 5'b00110, SRA = 5'b00111, SLT = 5'b01000, SLTU = 5'b01001, MUL = 5'b01010, MULH = 5'b01011, 
-               MULHU = 5'b01100, MULHSU = 5'b01101, DIV = 5'b01110, DIVU = 5'b01111, REM = 5'b10000, REMU = 5'b10001;
+               MULHU = 5'b01100, MULHSU = 5'b01101, DIV = 5'b01110, DIVU = 5'b01111, REM = 5'b10000, REMU = 5'b10001,
+               ANDN = 5'b10010;
 
     localparam LOAD = 7'b0000011, LOAD_FP = 7'b0000111, MISC_MEM = 7'b0001111, OP_IMM = 7'b0010011, AUIPC = 7'b0010111, 
                STORE = 7'b0100011, STORE_FP = 7'b0100111, AMO = 7'b0101111, OP = 7'b0110011, LUI = 7'b0110111,
                MADD = 7'b1000011, MSUB = 7'b1000111, NMSUB = 7'b1001011, NMADD = 7'b1001111, OP_FP = 7'b1010011, OP_V = 7'b1010111,
                BRANCH = 7'b1100011, JALR = 7'b1100111, JAL = 7'b1101111, SYSTEM = 7'b1110011, OP_VE = 7'b1110111;
 
-    reg RegWrite, ALUSrc, MemRead, MemWrite, PCSrc, PCSrcType, CSRWrite, IsConditional, BranchInvert;
+    reg RegWrite, ALUSrc, MemRead, MemWrite, PCSrc, PCSrcType, CSRWrite, IsConditional, BranchInvert, MRet;
     reg [4:0] ALUCtrl;
-    reg [2:0] ToReg;
+    reg [2:0] ToReg, Funct3;
 
     always @* begin
         RegWrite = 0;
@@ -32,6 +34,8 @@ module control_module (
         ToReg = 3'b000;
         IsConditional = 0;
         BranchInvert = 0;
+        Funct3 = funct3;
+        MRet = 0;
 
         case (opcode)
             OP: begin
@@ -125,36 +129,50 @@ module control_module (
             SYSTEM: begin
                 case (funct3)
                     3'h1: begin
-                        RegWrite = 1'b1;
+                        RegWrite = (rd != 5'b0) ? 1'b1 : 1'b0;
                         CSRWrite = 1'b1;
                         ToReg  = (rd == 5'b0)  ? 3'b000 : 3'b101;
+                        ALUCtrl = ADD;
                     end
                     3'h2: begin
                         RegWrite = 1'b1;
                         CSRWrite = (rs1 == 5'b0) ? 1'b0 : 1'b1;
                         ToReg = 3'b101;
+                        ALUCtrl = OR;
                     end
                     3'h3: begin
                         RegWrite = 1'b1;
                         CSRWrite = (rs1 == 5'b0) ? 1'b0 : 1'b1;
                         ToReg = 3'b101;
+                        ALUCtrl = ANDN;
                     end
                     3'h5: begin
-                        RegWrite = 1'b1;
+                        RegWrite = (rd != 5'b0) ? 1'b1 : 1'b0;
                         CSRWrite = 1'b1;
+                        ALUSrc   = 1'b1;
                         ToReg  = (rd == 5'b0)  ? 3'b000 : 3'b101;
+                        ALUCtrl = ADD;
                     end
                     3'h6: begin
                         RegWrite = 1'b1;
                         CSRWrite = (rs1 == 5'b0) ? 1'b0 : 1'b1;
+                        ALUSrc   = 1'b1;
                         ToReg = 3'b101;
+                        ALUCtrl = OR;
                     end
                     3'h7: begin
                         RegWrite = 1'b1;
                         CSRWrite = (rs1 == 5'b0) ? 1'b0 : 1'b1;
+                        ALUSrc = 1'b1;
                         ToReg = 3'b101;
+                        ALUCtrl = ANDN;
                     end
                     3'h0: begin
+                        if (funct12 == 12'h302) begin
+                            PCSrc = 1'b1;
+                            PCSrcType = 1'b0;
+                            MRet = 1'b1;
+                        end
                     end
                 endcase
             end
@@ -189,6 +207,6 @@ module control_module (
         endcase
     end
 
-    assign ctrl = {15'b0, BranchInvert, ALUCtrl, ToReg, IsConditional, PCSrcType, PCSrc, CSRWrite, MemRead, MemWrite, ALUSrc, RegWrite};
+    assign ctrl = {11'b0, MRet,Funct3, BranchInvert, ALUCtrl, ToReg, IsConditional, PCSrcType, PCSrc, CSRWrite, MemRead, MemWrite, ALUSrc, RegWrite};
 
 endmodule

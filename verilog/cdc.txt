@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-| Date         : Thu Apr 30 22:39:15 2026
+| Date         : Fri May  1 20:25:03 2026
 | Host         : violets-laptop running 64-bit Ubuntu 25.10
 | Command      : report_cdc -file cdc.txt
 | Design       : main

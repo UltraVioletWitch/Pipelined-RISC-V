@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-| Date         : Thu Apr 30 22:39:15 2026
+| Date         : Fri May  1 20:25:02 2026
 | Host         : violets-laptop running 64-bit Ubuntu 25.10
 | Command      : report_ram_utilization -file ram.txt
 | Design       : main
@@ -41,10 +41,10 @@ Table of Contents
 | Memory Name     | Array Size | RAM_STYLE | Memory Type | Port 1 Dimension / Map | Port 2 Dimension / Map |
 +-----------------+------------+-----------+-------------+------------------------+------------------------+
 | dMem/ram        |     131072 |           | RAM_SDP     | 4096x32                | 4096x32                |
-|  dMem/ram_reg_0 |      36864 |     BLOCK |             |  A:A:4096x9            |  B:B:4096x9            |
-|  dMem/ram_reg_1 |      36864 |     BLOCK |             |  A:A:4096x9            |  B:B:4096x9            |
-|  dMem/ram_reg_2 |      36864 |     BLOCK |             |  A:A:4096x9            |  B:B:4096x9            |
-|  dMem/ram_reg_3 |      20480 |     BLOCK |             |  A:A:4096x5            |  B:B:4096x5            |
+|  dMem/ram_reg_0 |      32768 |     BLOCK |             |  A:A:4096x8            |  B:B:4096x8            |
+|  dMem/ram_reg_1 |      32768 |     BLOCK |             |  A:A:4096x8            |  B:B:4096x8            |
+|  dMem/ram_reg_2 |      32768 |     BLOCK |             |  A:A:4096x8            |  B:B:4096x8            |
+|  dMem/ram_reg_3 |      32768 |     BLOCK |             |  A:A:4096x8            |  B:B:4096x8            |
 +-----------------+------------+-----------+-------------+------------------------+------------------------+
 
 
@@ -55,10 +55,10 @@ Table of Contents
 | Memory Name     | Primitive | RAM STYLE | Available Bits | Used Bits | Bit Util% | A Depth | A Depth Avail | A Depth Util% | A Width | A Width Avail | A Width Util% | B Depth | B Depth Avail | B Depth Util% | B Width | B Width Avail | B Width Util% |
 +-----------------+-----------+-----------+----------------+-----------+-----------+---------+---------------+---------------+---------+---------------+---------------+---------+---------------+---------------+---------+---------------+---------------+
 | dMem/ram        |           |           |                |           |           |         |               |               |         |               |               |         |               |               |         |               |               |
-|  dMem/ram_reg_0 | RAMB36E1  |     BLOCK |          36864 |     36864 |    100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |
-|  dMem/ram_reg_1 | RAMB36E1  |     BLOCK |          36864 |     36864 |    100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |
-|  dMem/ram_reg_2 | RAMB36E1  |     BLOCK |          36864 |     36864 |    100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |    4096 |          4096 |        100.00 |       9 |             9 |        100.00 |
-|  dMem/ram_reg_3 | RAMB36E1  |     BLOCK |          36864 |     20480 |     55.56 |    4096 |          4096 |        100.00 |       5 |             9 |         55.56 |    4096 |          4096 |        100.00 |       5 |             9 |         55.56 |
+|  dMem/ram_reg_0 | RAMB36E1  |     BLOCK |          36864 |     32768 |     88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |
+|  dMem/ram_reg_1 | RAMB36E1  |     BLOCK |          36864 |     32768 |     88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |
+|  dMem/ram_reg_2 | RAMB36E1  |     BLOCK |          36864 |     32768 |     88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |
+|  dMem/ram_reg_3 | RAMB36E1  |     BLOCK |          36864 |     32768 |     88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |    4096 |          4096 |        100.00 |       8 |             9 |         88.89 |
 +-----------------+-----------+-----------+----------------+-----------+-----------+---------+---------------+---------------+---------+---------------+---------------+---------+---------------+---------------+---------+---------------+---------------+
 
 
@@ -69,10 +69,10 @@ Table of Contents
 | Memory Name     | Primitive | Port 1 Dimension / Map | Port 2 Dimension / Map | Port A Type | Port A Requirement (ns) | Port B Type | Port B Requirement (ns) | A Cascade | IREG_A | OREG_A | DOA_REG | B Cascade | IREG_B | OREG_B | DOB_REG |
 +-----------------+-----------+------------------------+------------------------+-------------+-------------------------+-------------+-------------------------+-----------+--------+--------+---------+-----------+--------+--------+---------+
 | dMem/ram        |           | 4096x32                | 4096x32                |             |                         |             |                         |           |        |        |         |           |        |        |         |
-|  dMem/ram_reg_0 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
-|  dMem/ram_reg_1 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
-|  dMem/ram_reg_2 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
-|  dMem/ram_reg_3 | RAMB36E1  |  A:A:4096x5            |  B:B:4096x5            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
+|  dMem/ram_reg_0 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
+|  dMem/ram_reg_1 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
+|  dMem/ram_reg_2 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
+|  dMem/ram_reg_3 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |       Write |                    20.0 |        Read |                    20.0 |           |        |        |       0 |           |        |        |       0 |
 +-----------------+-----------+------------------------+------------------------+-------------+-------------------------+-------------+-------------------------+-----------+--------+--------+---------+-----------+--------+--------+---------+
 
 
@@ -83,10 +83,10 @@ Table of Contents
 | Memory Name     | Primitive | Port 1 Dimension / Map | Port 2 Dimension / Map | Port A Power Gated | Port A Enable | Port A WRITE_MODE | A Cascade | Port B Power Gated | Port B Enable | Port B WRITE_MODE | B Cascade |
 +-----------------+-----------+------------------------+------------------------+--------------------+---------------+-------------------+-----------+--------------------+---------------+-------------------+-----------+
 | dMem/ram        |           | 4096x32                | 4096x32                |                    |               |                   |           |                    |               |                   |           |
-|  dMem/ram_reg_0 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
-|  dMem/ram_reg_1 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
-|  dMem/ram_reg_2 | RAMB36E1  |  A:A:4096x9            |  B:B:4096x9            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
-|  dMem/ram_reg_3 | RAMB36E1  |  A:A:4096x5            |  B:B:4096x5            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
+|  dMem/ram_reg_0 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
+|  dMem/ram_reg_1 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
+|  dMem/ram_reg_2 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
+|  dMem/ram_reg_3 | RAMB36E1  |  A:A:4096x8            |  B:B:4096x8            |                    |        SIGNAL |        READ_FIRST |           |                    |        SIGNAL |       WRITE_FIRST |           |
 +-----------------+-----------+------------------------+------------------------+--------------------+---------------+-------------------+-----------+--------------------+---------------+-------------------+-----------+
 
 

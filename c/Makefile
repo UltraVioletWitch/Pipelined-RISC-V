@@ -1,7 +1,7 @@
 all: compile assemble link extract convert
 
 compile:
-	@riscv64-unknown-elf-gcc -march=rv32i -mabi=ilp32 \
+	@riscv64-unknown-elf-gcc -march=rv32i_zicsr -mabi=ilp32 \
     	-nostdlib -nostartfiles -ffreestanding -O0 \
     	-c main.c -o main.o
 

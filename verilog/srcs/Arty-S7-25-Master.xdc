@@ -17,12 +17,12 @@ set_property -dict { PACKAGE_PIN M5    IOSTANDARD SSTL135 } [get_ports { gpio[15
 
 
 ## RGB LEDs
-set_property -dict {PACKAGE_PIN J15 IOSTANDARD LVCMOS33} [get_ports {gpio[4]}]
-set_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports {gpio[5]}]
-set_property -dict {PACKAGE_PIN F15 IOSTANDARD LVCMOS33} [get_ports {gpio[6]}]
-set_property -dict {PACKAGE_PIN E15 IOSTANDARD LVCMOS33} [get_ports {gpio[7]}]
-set_property -dict {PACKAGE_PIN F18 IOSTANDARD LVCMOS33} [get_ports {gpio[8]}]
-set_property -dict {PACKAGE_PIN E14 IOSTANDARD LVCMOS33} [get_ports {gpio[9]}]
+set_property -dict {PACKAGE_PIN J15 IOSTANDARD LVCMOS33} [get_ports {gpio[4]}];
+set_property -dict {PACKAGE_PIN G17 IOSTANDARD LVCMOS33} [get_ports {gpio[5]}];
+set_property -dict {PACKAGE_PIN F15 IOSTANDARD LVCMOS33} [get_ports {gpio[6]}];
+set_property -dict {PACKAGE_PIN E15 IOSTANDARD LVCMOS33} [get_ports {gpio[7]}];
+set_property -dict {PACKAGE_PIN F18 IOSTANDARD LVCMOS33} [get_ports {gpio[8]}];
+set_property -dict {PACKAGE_PIN E14 IOSTANDARD LVCMOS33} [get_ports {gpio[9]}];
 
 
 ## LEDs
@@ -35,16 +35,16 @@ set_property -dict { PACKAGE_PIN H15   IOSTANDARD LVCMOS33 } [get_ports { gpio[3
 
 ## Buttons
 set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS33 } [get_ports { reset }]; #IO_L18N_T2_A23_15 Sch=btn[0]
-#set_property -dict { PACKAGE_PIN K16   IOSTANDARD LVCMOS33 } [get_ports { btn[1] }]; #IO_L19P_T3_A22_15 Sch=btn[1]
-#set_property -dict { PACKAGE_PIN J16   IOSTANDARD LVCMOS33 } [get_ports { btn[2] }]; #IO_L19N_T3_A21_VREF_15 Sch=btn[2]
+set_property -dict { PACKAGE_PIN K16   IOSTANDARD LVCMOS33 } [get_ports { gpio[10] }]; #IO_L19P_T3_A22_15 Sch=btn[1]
+set_property -dict { PACKAGE_PIN J16   IOSTANDARD LVCMOS33 } [get_ports { gpio[11] }]; #IO_L19N_T3_A21_VREF_15 Sch=btn[2]
 #set_property -dict { PACKAGE_PIN H13   IOSTANDARD LVCMOS33 } [get_ports { btn[3] }]; #IO_L20P_T3_A20_15 Sch=btn[3]
 
 
 ## PMOD Header JA
-set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVCMOS33 } [get_ports { gpio[8] }]; #IO_L4P_T0_D04_14 Sch=ja_p[1]
-set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports { gpio[9] }]; #IO_L4N_T0_D05_14 Sch=ja_n[1]
-set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { gpio[10] }]; #IO_L5P_T0_D06_14 Sch=ja_p[2]
-set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { gpio[11] }]; #IO_L5N_T0_D07_14 Sch=ja_n[2]
+#set_property -dict { PACKAGE_PIN L17   IOSTANDARD LVCMOS33 } [get_ports { gpio[8] }]; #IO_L4P_T0_D04_14 Sch=ja_p[1]
+#set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports { gpio[9] }]; #IO_L4N_T0_D05_14 Sch=ja_n[1]
+#set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports { gpio[10] }]; #IO_L5P_T0_D06_14 Sch=ja_p[2]
+#set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { gpio[11] }]; #IO_L5N_T0_D07_14 Sch=ja_n[2]
 ##set_property -dict { PACKAGE_PIN M16   IOSTANDARD LVCMOS33 } [get_ports { ja[4] }]; #IO_L7P_T1_D09_14 Sch=ja_p[3]
 #set_property -dict { PACKAGE_PIN M17   IOSTANDARD LVCMOS33 } [get_ports { ja[5] }]; #IO_L7N_T1_D10_14 Sch=ja_n[3]
 #set_property -dict { PACKAGE_PIN M18   IOSTANDARD LVCMOS33 } [get_ports { ja[6] }]; #IO_L8P_T1_D11_14 Sch=ja_p[4]

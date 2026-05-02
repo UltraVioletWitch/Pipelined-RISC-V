@@ -4,7 +4,6 @@
 _start:
     # stack in DMEM (adjust size as needed)
     la sp, _stack_top
-
     call main
 
 hang:
