@@ -27,6 +27,7 @@ module gpio_module (
     reg [31:0] gpio_ie_reg;
     reg [31:0] gpio_ip_reg;
     reg [15:0] gpio_in_r;
+<<<<<<< HEAD
 
     assign interrupt = |(gpio_ip_reg & gpio_ie_reg);
 
@@ -74,6 +75,47 @@ module gpio_module (
         endcase
     end
 
+=======
+
+    assign interrupt = |(gpio_ip_reg & gpio_ie_reg);
+
+    // ── Address decode ────────────────────────────────────────────────────────
+    wire gpio_re = (addr_r == GPIO_IN) || (addr_r == GPIO_OUT) ||
+                   (addr_r == GPIO_DIR) || (addr_r == GPIO_IE) ||
+                   (addr_r == GPIO_IP);
+    wire gpio_we = we && ((addr_w == GPIO_OUT) || (addr_w == GPIO_DIR) || 
+                          (addr_w == GPIO_IE)  || (addr_w == GPIO_IP));
+
+    // ── Combinational read mux ────────────────────────────────────────────────
+    // Separate from the clocked block so d_read_comb is stable before the
+    // clock edge; dout is then registered cleanly from it.
+    reg [31:0] d_read_comb;
+    always @* begin
+        case (addr_r)
+            GPIO_IN:  d_read_comb = {16'b0, gpio_in_wire};
+            GPIO_OUT: d_read_comb = gpio_out_reg;
+            GPIO_DIR: d_read_comb = gpio_dir_reg;
+            GPIO_IE:  d_read_comb = gpio_ie_reg;
+            GPIO_IP:  d_read_comb = gpio_ip_reg;
+            default:  d_read_comb = 32'b0;
+        endcase
+    end
+
+    // ── Combinational write mux ───────────────────────────────────────────────
+    // Compute the full new 32-bit register value before the clock edge,
+    // selecting the correct existing register for the read-modify-write.
+    reg [31:0] existing_reg;
+    always @* begin
+        case (addr_w)
+            GPIO_OUT: existing_reg = gpio_out_reg;
+            GPIO_DIR: existing_reg = gpio_dir_reg;
+            GPIO_IE:  existing_reg = gpio_ie_reg;
+            GPIO_IP:  existing_reg = gpio_ip_reg;
+            default:  existing_reg = 32'b0;
+        endcase
+    end
+
+>>>>>>> 9257098 (removed vcd files)
     reg [31:0] d_write_comb;
     always @* begin
         d_write_comb = existing_reg; // default: no change
@@ -142,9 +184,12 @@ module gpio_module (
 
     // ── Clocked write (gpio_out_reg / gpio_dir_reg) ───────────────────────────
     always @(posedge clk or posedge reset) begin
+<<<<<<< HEAD
         gpio_in_r <= gpio_in_wire;
 
         gpio_ip_reg <= gpio_ip_reg | ({16'b0, gpio_in_wire & ~gpio_in_r} & gpio_ie_reg);
+=======
+>>>>>>> 9257098 (removed vcd files)
 
         if (reset) begin
             gpio_in_r    <= 0;
@@ -152,6 +197,7 @@ module gpio_module (
             gpio_out_reg <= 0;
             gpio_ie_reg  <= 0;
             gpio_ip_reg  <= 0;
+<<<<<<< HEAD
         end else if (gpio_we) begin
             case (addr_w)
                 GPIO_OUT: gpio_out_reg <= d_write_comb;
@@ -159,6 +205,21 @@ module gpio_module (
                 GPIO_IE:  gpio_ie_reg  <= d_write_comb;
                 GPIO_IP:  gpio_ip_reg  <= gpio_ip_reg & ~d_write_comb;
             endcase
+=======
+        end else begin
+            gpio_in_r <= gpio_in_wire;
+
+            gpio_ip_reg <= gpio_ip_reg | ({16'b0, gpio_in_wire & ~gpio_in_r} & gpio_ie_reg);
+
+            if (gpio_we) begin
+                case (addr_w)
+                    GPIO_OUT: gpio_out_reg <= d_write_comb;
+                    GPIO_DIR: gpio_dir_reg <= d_write_comb;
+                    GPIO_IE:  gpio_ie_reg  <= d_write_comb;
+                    GPIO_IP:  gpio_ip_reg  <= gpio_ip_reg & ~d_write_comb;
+                endcase
+            end
+>>>>>>> 9257098 (removed vcd files)
         end
     end
 

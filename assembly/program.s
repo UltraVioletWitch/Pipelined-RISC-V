@@ -1,82 +1,148 @@
-    .section .text
-    .globl _start
+.section .text
+.globl _start
+.align 4
 
+# ============================================================
+# ENTRY
+# ============================================================
 _start:
-    lui  x1, 0x4          # base = 0x4000
 
-    addi x2, x0, 1
-    addi x3, x0, 2
-    addi x4, x0, 3
-    addi x5, x0, 4
-    addi x6, x0, 0        # accumulator
+    # --------------------------------------------------------
+    # Stack setup (safe default)
+    # --------------------------------------------------------
+    li sp, 0x00007FFC
 
-# -----------------------------
-# STRESS BLOCK 1: RAW hazard chain
-# -----------------------------
-    sw   x2, 0(x1)
-    lw   x7, 0(x1)
-    add  x6, x6, x7
+    # --------------------------------------------------------
+    # GPIO setup
+    # --------------------------------------------------------
+    li t1, 0xF0000008
+    li t0, 0x3FF
+    sw t0, 0(t1)              # GPIO_DIR
 
-    sw   x3, 0(x1)
-    lw   x7, 0(x1)
-    add  x6, x6, x7
+    li t1, 0xF000000C
+    li t0, 0xFC00
+    sw t0, 0(t1)              # GPIO_IE
 
-    sw   x4, 0(x1)
-    lw   x7, 0(x1)
-    add  x6, x6, x7
+    # --------------------------------------------------------
+    # UART interrupt enable
+    # --------------------------------------------------------
+    li t1, 0xF000100C
+    li t0, 0x2
+    sw t0, 0(t1)              # UART_IE
 
-# -----------------------------
-# STRESS BLOCK 2: interleaved overwrite hazard
-# -----------------------------
-    sw   x2, 0(x1)
-    sw   x3, 0(x1)
-    lw   x7, 0(x1)        # must get x3 (not x2)
-    add  x6, x6, x7
+    # --------------------------------------------------------
+    # Enable machine interrupts
+    # --------------------------------------------------------
+    li t0, (1 << 7) | (1 << 11)
+    csrs mie, t0
 
-# -----------------------------
-# STRESS BLOCK 3: address aliasing
-# -----------------------------
-    addi x8, x1, 4
+    li t0, (1 << 3)
+    csrs mstatus, t0
 
-    sw   x4, 0(x1)
-    sw   x5, 0(x8)
+    # --------------------------------------------------------
+    # Timer setup
+    # --------------------------------------------------------
+    li t1, 0xFFFF0008
+    li t0, 0x100000
+    sw t0, 0(t1)              # MTIMECMP_L
 
-    lw   x9, 0(x1)
-    lw   x10, 0(x8)
+    # --------------------------------------------------------
+    # UART TX test byte
+    # --------------------------------------------------------
+    li t1, 0xF0001000
+    li t0, 0x41
+    sw t0, 0(t1)
 
-    add  x6, x6, x9
-    add  x6, x6, x10
+# ============================================================
+# MAIN LOOP
+# ============================================================
+main_loop:
 
-# -----------------------------
-# STRESS BLOCK 4: load-use + store-use mix
-# -----------------------------
-    sw   x6, 0(x1)
-    lw   x11, 0(x1)
-    addi x11, x11, 1
-    sw   x11, 0(x1)
-    lw   x12, 0(x1)
+    # GPIO pattern
+    li t1, 0xF0000004
+    li t0, 0x155
+    sw t0, 0(t1)
 
-    add  x6, x6, x12
+    # delay loop
+    li t2, 50000
 
-# -----------------------------
-# STRESS BLOCK 5: tight dependency loop
-# -----------------------------
-    addi x13, x0, 0
-    addi x14, x0, 5
+delay_loop:
+    addi t2, t2, -1
+    bnez t2, delay_loop
 
-loop:
-    sw   x14, 0(x1)
-    lw   x15, 0(x1)
-    add  x13, x13, x15
+    j main_loop
 
-    addi x14, x14, 1
-    addi x5, x5, -1
-    bne  x5, x0, loop
 
-# -----------------------------
-# FINAL CHECKSUM
-# -----------------------------
-    add  x9, x6, x13      # output register (your CPU shows x9)
+# ============================================================
+# INTERRUPT HANDLER
+# ============================================================
+.section .text.trap
+.align 4
+.globl trap_handler
 
-hang:
-    jal x0, hang
+trap_handler:
+
+    csrr t0, mcause
+
+    li t1, 0x80000007
+    beq t0, t1, timer_irq
+
+    li t1, 0x8000000B
+    beq t0, t1, ext_irq
+
+    mret
+
+
+# ============================================================
+# TIMER ISR
+# ============================================================
+timer_irq:
+
+    li t1, 0xF0000004
+    lw t2, 0(t1)
+    xori t2, t2, 1
+    sw t2, 0(t1)
+
+    li t1, 0xFFFF0008
+    li t3, 0x100000
+    sw t3, 0(t1)
+
+    mret
+
+
+# ============================================================
+# EXTERNAL ISR (UART / GPIO)
+# ============================================================
+ext_irq:
+
+    # -----------------------------
+    # UART IP check
+    # -----------------------------
+    li t1, 0xF0001008
+    lw t2, 0(t1)
+
+    andi t3, t2, 0x2
+    beqz t3, gpio_irq
+
+    # UART RX read
+    li t1, 0xF0001004
+    lw t4, 0(t1)
+
+    # echo back
+    li t1, 0xF0001000
+    sw t4, 0(t1)
+
+    # clear UART interrupt
+    li t1, 0xF0001008
+    li t5, 0x2
+    sw t5, 0(t1)
+
+
+gpio_irq:
+
+    # clear GPIO interrupt
+    li t1, 0xF000000C
+    li t5, 0xFFFF
+    sw t5, 0(t1)
+
+    mret

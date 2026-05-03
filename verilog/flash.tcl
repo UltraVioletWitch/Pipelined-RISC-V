@@ -1,4 +1,21 @@
+<<<<<<< HEAD
 read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" "./srcs/block_ram.v" "./srcs/instr_rom.v" "./srcs/gpio_module.v" "./srcs/timer_module.v" }
+=======
+create_project myproj ./myproj -part xc7a35tcpg236-1 -force
+
+create_ip -name clk_wiz -vendor xilinx.com -library ip -version 6.0 -module_name clk_wiz_0
+
+set_property -dict [list \
+    CONFIG.PRIM_IN_FREQ {100.0} \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {50.0} \
+    CONFIG.USE_LOCKED {true} \
+] [get_ips clk_wiz_0]
+
+generate_target all [get_ips clk_wiz_0]
+synth_ip [get_ips clk_wiz_0]
+
+read_verilog { "./srcs/cpu.v" "./srcs/main.v" "./srcs/alu_module.v" "./srcs/control_module.v" "./srcs/write_back_module.v" "./srcs/block_ram.v" "./srcs/instr_rom.v" "./srcs/gpio_module.v" "./srcs/timer_module.v" "./srcs/reset_sync.v" "./srcs/uart_module.v" "./srcs/uart_rx.v" "./srcs/uart_tx.v" "./srcs/baud_gen.v" }
+>>>>>>> 9257098 (removed vcd files)
 
 read_xdc "./srcs/Arty-S7-25-Master.xdc"
 
@@ -11,7 +28,7 @@ puts "Starting synthesis..."
 synth_design -top "main" -part "xc7s25csga324-1"
 
 report_utilization -file util.txt
-report_timing_summary -file timing.txt
+report_timing_summary -file timing.txt -max_paths 1 -setup
 
 # then check specifically
 report_methodology -file method.txt

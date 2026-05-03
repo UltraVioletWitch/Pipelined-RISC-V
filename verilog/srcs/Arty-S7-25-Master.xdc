@@ -5,9 +5,9 @@
 
 ## Clock signal
 #set_property -dict { PACKAGE_PIN F14   IOSTANDARD LVCMOS33 } [get_ports { clk }]; #IO_L13P_T2_MRCC_15 Sch=uclk
-#create_clock -add -name sys_clk_pin -period 133.333 [get_ports { clk }];
-set_property -dict {PACKAGE_PIN R2 IOSTANDARD SSTL135} [get_ports clk]
-create_clock -period 20.000 -name sys_clk_pin -waveform {0.000 10.000} -add [get_ports clk]
+#create_clock -add -name sys_clk_pin -period 83.333 [get_ports { clk }];
+set_property -dict {PACKAGE_PIN R2 IOSTANDARD SSTL135} [get_ports clk_100MHz]
+create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} -add [get_ports clk_100MHz]
 
 ## Switches
 set_property -dict { PACKAGE_PIN H14   IOSTANDARD LVCMOS33 } [get_ports { gpio[12] }]; #IO_L20N_T3_A19_15 Sch=sw[0]
@@ -85,9 +85,9 @@ set_property -dict { PACKAGE_PIN J16   IOSTANDARD LVCMOS33 } [get_ports { gpio[1
 
 
 ## USB-UART Interface
-#set_property -dict { PACKAGE_PIN R12   IOSTANDARD LVCMOS33 } [get_ports { uart_tx }]; #IO_25_14 Sch=uart_rxd_out
-#set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { uart_rx }]; #IO_L24N_T3_A00_D16_14 Sch=uart_txd_in
-#set_property PULLUP true [get_ports uart_rx]
+set_property -dict { PACKAGE_PIN R12   IOSTANDARD LVCMOS33 } [get_ports { uart_tx }]; #IO_25_14 Sch=uart_rxd_out
+set_property -dict { PACKAGE_PIN V12   IOSTANDARD LVCMOS33 } [get_ports { uart_rx }]; #IO_L24N_T3_A00_D16_14 Sch=uart_txd_in
+set_property PULLUP true [get_ports uart_rx]
 
 ## Dedicated Analog Inputs
 #set_property -dict {PACKAGE_PIN J10} [get_ports Vp_Vn_v_p]

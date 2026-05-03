@@ -8,7 +8,10 @@ module cpu(
     output wire [31:0] din,
     input wire [31:0] dout,
     output reg [31:0] EXMEM_Ctrl,
-    output reg [31:0] IDEX_Ctrl
+    output reg [31:0] IDEX_Ctrl,
+    output reg [31:0] pc_next,
+    output wire load_hazard,
+    input wire [31:0] i_next
 );
 
     // parameter declarations
@@ -50,13 +53,13 @@ module cpu(
 
     // Control Signal Assignments
     localparam RegWrite = 5'd0, ALUSrc = 5'd1, MemWrite = 5'd2, MemRead = 5'd3, CSRWrite = 5'd4, PCSrc = 5'd5, PCSrcType = 5'd6, IsConditional = 5'd7,
-               ToRegStart = 5'd8, ToRegEnd = 5'd10, ALUCtrlStart = 5'd11, ALUCtrlEnd = 5'd15, BranchInvert = 5'd16, Funct3_Start = 5'd17, Funct3_End = 5'd19, MRet = 5'd20;
+               ToRegStart = 5'd8, ToRegEnd = 5'd10, ALUCtrlStart = 5'd11, ALUCtrlEnd = 5'd15, BranchInvert = 5'd16, Funct3_Start = 5'd17, Funct3_End = 5'd19, MRet = 5'd20,
+               IsEcall = 5'd21, IsEbreak = 5'd22;
 
     // memory definitions
     reg [31:0] Regs[31:0];
 
-    reg [31:0] PC;
-    reg [31:0] pc_next;
+    reg [31:0] PC, IR;
     reg [31:0] IFID_PC, IFID_IR;
     reg [31:0] IDEX_IG, IDEX_PC, IDEX_CSR;
     reg [11:0] IDEX_CSR_ADDR;
@@ -90,44 +93,28 @@ module cpu(
     reg [31:0] mem_rrdata, rrdata;
     reg sw_then_ld0, sw_then_ld1;
     wire [31:0] wb_rd = (sw_then_ld1) ? rrdata : MEMWB_LD;
+    reg [31:0] commit_pc;
+    reg mret_inhibit;
 
     // hazard and flush detection
     wire jal_flush = IDEX_Ctrl[PCSrc] && !IDEX_Ctrl[IsConditional];
-    wire load_hazard = (EXMEM_Ctrl[MemRead] && (EXMEM_RD != 0) && ((EXMEM_RD == IDEX_RS1_ADDR) || (EXMEM_RD == IDEX_RS2_ADDR)));
+    assign load_hazard = (EXMEM_Ctrl[MemRead] && (EXMEM_RD != 0) && ((EXMEM_RD == IDEX_RS1_ADDR) || (EXMEM_RD == IDEX_RS2_ADDR)));
     wire branch_taken = EXMEM_Ctrl[IsConditional] && (EXMEM_Z ^ EXMEM_Ctrl[BranchInvert]);
-    wire take_interrupt = interrupt_pending && !load_hazard && !branch_taken && !jal_flush;
+    wire take_interrupt = interrupt_pending && !load_hazard && !branch_taken && !jal_flush && !mret_inhibit;
 
-    wire flush = jal_flush || branch_taken || take_interrupt;
+    wire sync_trap = IDEX_Ctrl[IsEcall] || IDEX_Ctrl[IsEbreak];
+
+    wire flush = jal_flush || branch_taken || take_interrupt || sync_trap;
     wire stall = load_hazard;
 
     assign we = EXMEM_Ctrl[MemWrite] && (EXMEM_ALU >= 32'h4000);
     assign din = store_data;
     assign mem_addr_r = alu_result;
     assign mem_addr_w = EXMEM_ALU;
-    wire [31:0] i_next;
-
-    /*
-    block_ram dMem (
-        .clk(clk),
-        .we(we),
-        .addr_r(mem_addr_r),
-        .addr_w(mem_addr_w),
-        .din(din),
-        .dout(dout)
-    );
-    */
-
-    instr_rom iMem (
-        .clk(clk),
-        .rst(reset),
-        .en(!load_hazard),
-        .addr(pc_next >> 2),
-        .dout(i_next)
-    );
 
     // Program Counter Calculation Module
     always @* begin
-        if (take_interrupt)
+        if (take_interrupt || sync_trap)
             pc_next = mtvec;
         else if (IDEX_Ctrl[MRet])
             pc_next = mepc;
@@ -149,7 +136,6 @@ module cpu(
             PC <= pc_next;
         end
     end
-
 
     // IF/ID assignment
     always @(posedge clk or posedge reset) begin
@@ -269,8 +255,6 @@ module cpu(
 
         if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0) && EXMEM_Ctrl[MemWrite])
             ForwardMem = 2'b01;
-        else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD == EXMEM_RS2_ADDR) && (MEMWB_RD != 0))
-            ForwardMem = 2'b10;
         else
             ForwardMem = 0;
     end
@@ -299,7 +283,7 @@ module cpu(
             EXMEM_CSR <= 32'b0;
             EXMEM_CSR_ADDR <= 12'b0;
             EXMEM_Ctrl <= 32'b0;
-        end else if (branch_taken || take_interrupt || stall) begin
+        end else if (branch_taken || take_interrupt || stall || sync_trap) begin
             EXMEM_Ctrl <= 32'b0;
         end else begin
             EXMEM_LD <= dout;
@@ -401,37 +385,66 @@ module cpu(
             endcase
     end
 
+    always @(posedge clk) begin
+        if (reset) begin
+            commit_pc <= 0;
+            mret_inhibit <= 0;
+        end else if (!flush && !stall) begin
+            commit_pc <= IFID_PC;
+            mret_inhibit <= 1'b0;
+        end
+    end
+
+    reg just_branched1, just_branched2;
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            just_branched1 <= 1'b0;
+            just_branched2 <= 1'b0;
+        end else begin
+            just_branched1 <= branch_taken;
+            just_branched2 <= just_branched1;
+        end
+    end
+
     always @(posedge clk or posedge reset) begin
         if (reset) begin 
-            mstatus    = 32'b0;
-            mtvec      = 32'b0;
-            mscratch   = 32'b0;
-            mepc       = 32'b0;
-            mcause     = 32'b0;
-            mie        = 32'b0;
-            misa       = 32'h40001100;
-            mhartid    = 32'b0;
-            mvendorid  = 32'b0;
-            marchid    = 32'b0;
-            mimpid     = 32'b0;
-            mtval      = 32'b0;
-            mcounteren = 32'b0;
+            mstatus    <= 32'b0;
+            mtvec      <= 32'b0;
+            mscratch   <= 32'b0;
+            mepc       <= 32'b0;
+            mcause     <= 32'b0;
+            mie        <= 32'b0;
+            misa       <= 32'h40001100;
+            mhartid    <= 32'b0;
+            mvendorid  <= 32'b0;
+            marchid    <= 32'b0;
+            mimpid     <= 32'b0;
+            mtval      <= 32'b0;
+            mcounteren <= 32'b0;
+        end else if (sync_trap) begin
+            mepc       <= IDEX_PC;
+            mcause     <= IDEX_Ctrl[IsEcall] ? 32'hB : 32'h3;
+            mtval      <= 32'b0;
+            mstatus    <= {mstatus[31:8], mstatus[3], mstatus[6:4], 1'b0, mstatus[2:0]};
         end else if (take_interrupt) begin
-            mepc       <= IFID_PC;
+            mepc       <= (just_branched2) ? IFID_PC :
+                          (just_branched1) ? PC      :
+                                             IDEX_PC;
             mcause     <= interrupt_cause;
             mtval      <= 32'b0;
             mstatus <= {mstatus[31:8], mstatus[3], mstatus[6:4], 1'b0, mstatus[2:0]};
         end else if (IDEX_Ctrl[MRet]) begin
             mstatus <= {mstatus[31:8], 1'b1, mstatus[6:4], mstatus[7], mstatus[2:0]};
+            mret_inhibit <= 1'b1;
         end else if (EXMEM_Ctrl[CSRWrite]) begin
             case (EXMEM_CSR_ADDR)  // you'll need to pipeline the CSR address too
-                12'h300: mstatus  <= EXMEM_ALU;  // CSRRW writes alu result
-                12'h305: mtvec    <= EXMEM_ALU;
-                12'h340: mscratch <= EXMEM_ALU;
-                12'h341: mepc     <= EXMEM_ALU;
-                12'h342: mcause   <= EXMEM_ALU;
-                12'h304: mie      <= EXMEM_ALU;
-                12'h343: mtval    <= EXMEM_ALU;
+                12'h300: mstatus    <= EXMEM_ALU;  // CSRRW writes alu result
+                12'h305: mtvec      <= EXMEM_ALU;
+                12'h340: mscratch   <= EXMEM_ALU;
+                12'h341: mepc       <= EXMEM_ALU;
+                12'h342: mcause     <= EXMEM_ALU;
+                12'h304: mie        <= EXMEM_ALU;
+                12'h343: mtval      <= EXMEM_ALU;
                 12'h306: mcounteren <= EXMEM_ALU;
                 // read-only: mip, misa, mhartid, mvendorid, marchid, mimpid
             endcase
@@ -454,7 +467,7 @@ module cpu(
     always @(posedge clk or posedge reset) begin
         if (reset) begin
             for (i = 0; i < 32; i = i + 1)
-                Regs[i] = 32'b0;
+                Regs[i] <= 32'b0;
         end else if (MEMWB_Ctrl[RegWrite] && (MEMWB_RD != 0))
             Regs[MEMWB_RD] <= wr_data;
         Regs[0] <= 32'b0;

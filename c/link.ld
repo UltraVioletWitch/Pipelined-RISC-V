@@ -16,12 +16,18 @@ SECTIONS
     } > IMEM
 
     .rodata : {
+        _rodata_start = .;
         *(.rodata*)
-    } > IMEM
+        _rodata_end = .;
+    } > DMEM AT> IMEM
+    _rodata_lma = LOADADDR(.rodata);
 
     .data : {
+        _data_start = .;
         *(.data*)
-    } > DMEM
+        _data_end = .;
+    } > DMEM AT> IMEM
+    _data_lma = LOADADDR(.data);
 
     .bss : {
         _bss_start = .;

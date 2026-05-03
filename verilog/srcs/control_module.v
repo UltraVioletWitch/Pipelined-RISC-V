@@ -18,7 +18,11 @@ module control_module (
                MADD = 7'b1000011, MSUB = 7'b1000111, NMSUB = 7'b1001011, NMADD = 7'b1001111, OP_FP = 7'b1010011, OP_V = 7'b1010111,
                BRANCH = 7'b1100011, JALR = 7'b1100111, JAL = 7'b1101111, SYSTEM = 7'b1110011, OP_VE = 7'b1110111;
 
+<<<<<<< HEAD
     reg RegWrite, ALUSrc, MemRead, MemWrite, PCSrc, PCSrcType, CSRWrite, IsConditional, BranchInvert, MRet;
+=======
+    reg RegWrite, ALUSrc, MemRead, MemWrite, PCSrc, PCSrcType, CSRWrite, IsConditional, BranchInvert, MRet, IsEcall, IsEbreak;
+>>>>>>> 9257098 (removed vcd files)
     reg [4:0] ALUCtrl;
     reg [2:0] ToReg, Funct3;
 
@@ -36,6 +40,11 @@ module control_module (
         BranchInvert = 0;
         Funct3 = funct3;
         MRet = 0;
+<<<<<<< HEAD
+=======
+        IsEcall = 0;
+        IsEbreak = 0;
+>>>>>>> 9257098 (removed vcd files)
 
         case (opcode)
             OP: begin
@@ -169,6 +178,15 @@ module control_module (
                     end
                     3'h0: begin
                         case (funct12)
+<<<<<<< HEAD
+=======
+                            12'h000: begin
+                                IsEcall = 1'b1;
+                            end
+                            12'h001: begin
+                                IsEbreak = 1'b1;
+                            end
+>>>>>>> 9257098 (removed vcd files)
                             12'h302: begin
                                 PCSrc = 1'b1;
                                 MRet = 1'b1;
@@ -180,36 +198,18 @@ module control_module (
                 endcase
             end
             MISC_MEM: begin
-                RegWrite = 0;
-                ALUSrc = 0;
-                MemRead = 0;
-                MemWrite = 0;
-                ALUCtrl = ADD;
-                PCSrc = 0;
-                PCSrcType = 0;
-                CSRWrite = 0;
-                ToReg = 3'b000;
-                IsConditional = 0;
-                BranchInvert = 0;
                 // nop
             end
             default: begin
-                RegWrite = 0;
-                ALUSrc = 0;
-                MemRead = 0;
-                MemWrite = 0;
-                ALUCtrl = ADD;
-                PCSrc = 0;
-                PCSrcType = 0;
-                CSRWrite = 0;
-                ToReg = 3'b000;
-                IsConditional = 0;
-                BranchInvert = 0;
                 // nop
             end
         endcase
     end
 
+<<<<<<< HEAD
     assign ctrl = {11'b0, MRet,Funct3, BranchInvert, ALUCtrl, ToReg, IsConditional, PCSrcType, PCSrc, CSRWrite, MemRead, MemWrite, ALUSrc, RegWrite};
+=======
+    assign ctrl = {9'b0, IsEbreak, IsEcall, MRet, Funct3, BranchInvert, ALUCtrl, ToReg, IsConditional, PCSrcType, PCSrc, CSRWrite, MemRead, MemWrite, ALUSrc, RegWrite};
+>>>>>>> 9257098 (removed vcd files)
 
 endmodule

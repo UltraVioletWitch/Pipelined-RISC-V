@@ -1,7 +1,7 @@
 all: assemble link extract convert
 
 assemble:
-	@riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 program.s -o program.o
+	@riscv64-unknown-elf-as -march=rv32i_zicsr -mabi=ilp32 program.s -o program.o
 
 link:
 	@riscv64-unknown-elf-ld -m elf32lriscv -Ttext=0x0 program.o -o program.elf
