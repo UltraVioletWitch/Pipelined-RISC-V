@@ -7,14 +7,11 @@
 #define GPIO_IE   (*(volatile uint32_t *)0xF000000C)
 #define GPIO_IP   (*(volatile uint32_t *)0xF0000010)
 
-<<<<<<< HEAD
-=======
 #define UART_TX   (*(volatile uint32_t *)0xF0001000)
 #define UART_RX   (*(volatile uint32_t *)0xF0001004)
 #define UART_IP   (*(volatile uint32_t *)0xF0001008)
 #define UART_IE   (*(volatile uint32_t *)0xF000100C)
 
->>>>>>> 9257098 (removed vcd files)
 #define MTIME_H    (*(volatile uint32_t *)0xFFFF0000)
 #define MTIME_L    (*(volatile uint32_t *)0xFFFF0004)
 #define MTIMECMP_H (*(volatile uint32_t *)0xFFFF0008)
@@ -27,11 +24,6 @@
 // 12MHz clock - 1 second interval
 #define TIMER_INTERVAL 12500000ULL
 
-<<<<<<< HEAD
-static volatile uint32_t led_state = 0;
-static volatile uint32_t tick_count = 0;
-static volatile int timerFlag = 0;
-=======
 #define UART_IP_TX (1<<0)
 #define UART_IP_RX (1<<1)
 
@@ -63,7 +55,6 @@ void uart_puts(const char *s) {
         uart_putc(*s++);
     }
 }
->>>>>>> 9257098 (removed vcd files)
 
 void set_timer(uint64_t interval) {
     uint32_t lo, hi;
@@ -85,26 +76,11 @@ void __attribute__((interrupt("machine"))) trap_handler() {
     //GPIO_OUT = 0x11;
 
     if (cause == 0x80000007) {
-<<<<<<< HEAD
-=======
         // timer interrupt
->>>>>>> 9257098 (removed vcd files)
         timerFlag = 1;
         // reschedule
         set_timer(TIMER_INTERVAL);
     } else if (cause == 0x8000000B) {
-<<<<<<< HEAD
-        // external interrupt - flash all LEDs twice
-        uint32_t saved = led_state;
-        for (int i = 0; i < 3; i++) {
-            GPIO_OUT = 0x3FF;
-            for (volatile int d = 0; d < 5000000; d++);
-            GPIO_OUT = 0x00;
-            for (volatile int d = 0; d < 5000000; d++);
-        }
-        GPIO_OUT = saved;
-=======
-
         uint32_t uart_ip = UART_IP;
         uint32_t gpio_ip = GPIO_IP;
 
@@ -122,7 +98,6 @@ void __attribute__((interrupt("machine"))) trap_handler() {
             GPIO_IP = 0xFFFF;
         }
 
->>>>>>> 9257098 (removed vcd files)
         GPIO_IP = 0xFFFF;
     }
 }
@@ -130,13 +105,7 @@ void __attribute__((interrupt("machine"))) trap_handler() {
 int main() {
     GPIO_DIR = 0x3FF;
     GPIO_IE  = 0xFC00;
-<<<<<<< HEAD
-    //GPIO_OUT = 0x55;    // startup pattern so we know code is running
-
-=======
-
     UART_IE = UART_IP_RX | UART_IP_TX;
->>>>>>> 9257098 (removed vcd files)
 
     // enable timer and external interrupts
     set_csr(mie, (1 << 7));
@@ -144,17 +113,6 @@ int main() {
 
     // arm the first timer interrupt
     set_timer(TIMER_INTERVAL);
-<<<<<<< HEAD
-    set_csr(mstatus, (1 << 3));
-
-    // enable global interrupts
-
-
-    while (1) {
-        if (timerFlag) {
-            tick_count++;
-
-=======
 
     // enable global interrupts
     set_csr(mstatus, (1 << 3));
@@ -167,20 +125,11 @@ int main() {
             tick_count++;
 
             // rotate leds
->>>>>>> 9257098 (removed vcd files)
             led_state = (led_state << 1) | (led_state >> 9);
             led_state &= 0x3FF;
 
             if (led_state == 0)
                 led_state = 0x01;
-<<<<<<< HEAD
-
-            GPIO_OUT = led_state;
-
-            timerFlag = 0;
-        }
-=======
-            
 
             GPIO_OUT = led_state & 0x3FF;
 
@@ -205,6 +154,5 @@ int main() {
             GPIO_OUT = saved;
             gpioFlag = 0;
         }
->>>>>>> 9257098 (removed vcd files)
     }
 }

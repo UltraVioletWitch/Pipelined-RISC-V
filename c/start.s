@@ -6,22 +6,9 @@ _start:
     la t0, trap_handler
     csrw mtvec, t0
 
-<<<<<<< HEAD
-    la a0, _bss_start
-    la a1, _bss_end
-
-bss_loop:
-    bge a0, a1, bss_done
-    sw zero, 0(a0)
-    addi a0, a0, 4
-    j bss_loop
-bss_done:
-    jal ra, main
-=======
     # ── 2. Set trap vector ───────────────────────────────
     la t0, trap_handler
     csrw mtvec, t0
->>>>>>> 9257098 (removed vcd files)
 
     # ── 3. Copy .rodata from LMA (IMEM) to VMA (DMEM) ───
     la a0, _rodata_lma      # source:      packed after .text in hex file
