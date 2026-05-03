@@ -97,7 +97,7 @@ module main (
         .i_next(i_next)
     );
 
-    instr_rom iMem (
+    instr_ram iMem (
         .clk(clk),
         .reset(cpu_reset),
         .en(!load_hazard),
